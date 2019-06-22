@@ -123,7 +123,7 @@ def example_generator(data_path, single_pass):
   """
   while True:
     filelist = glob.glob(data_path) # get the list of datafiles
-    assert filelist, ('Error: Empty filelist at %s' % data_path) # check filelist isn't empty
+    # assert filelist, ('Error: Empty filelist at %s' % data_path) # check filelist isn't empty
     if single_pass:
       filelist = sorted(filelist)
     else:

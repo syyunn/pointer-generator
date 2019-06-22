@@ -31,6 +31,12 @@ from tensorflow.python import debug as tf_debug
 
 FLAGS = tf.app.flags.FLAGS
 
+# Define input
+
+tf.app.flags.DEFINE_string('hlgt',
+                           '',
+                           'text to summarize.')
+
 # Where to find data
 tf.app.flags.DEFINE_string('data_path', '', 'Path expression to tf.Example datafiles. Can include wildcards to access multiple datafiles.')
 tf.app.flags.DEFINE_string('vocab_path', '', 'Path expression to text vocabulary file.')
@@ -288,9 +294,9 @@ def main(unused_argv):
   if FLAGS.mode == 'decode':
     FLAGS.batch_size = FLAGS.beam_size
 
-  # If single_pass=True, check we're in decode mode
-  if FLAGS.single_pass and FLAGS.mode!='decode':
-    raise Exception("The single_pass flag should only be True in decode mode")
+  # # If single_pass=True, check we're in decode mode
+  # if FLAGS.single_pass and FLAGS.mode!='decode':
+  #   raise Exception("The single_pass flag should only be True in decode mode")
 
   # Make a namedtuple hps, containing the values of the hyperparameters that the model needs
   hparam_list = ['mode', 'lr', 'adagrad_init_acc', 'rand_unif_init_mag', 'trunc_norm_init_std', 'max_grad_norm', 'hidden_dim', 'emb_dim', 'batch_size', 'max_dec_steps', 'max_enc_steps', 'coverage', 'cov_loss_wt', 'pointer_gen']
@@ -301,25 +307,18 @@ def main(unused_argv):
   hps = namedtuple("HParams", hps_dict.keys())(**hps_dict)
 
   # Create a batcher object that will create minibatches of data
-  batcher = Batcher(FLAGS.data_path, vocab, hps, single_pass=FLAGS.single_pass)
+  batcher = Batcher(FLAGS.hlgt,
+                    FLAGS.data_path,
+                    vocab,
+                    hps,
+                    single_pass=FLAGS.single_pass)
 
   tf.set_random_seed(111) # a seed value for randomness
 
-  if hps.mode == 'train':
-    print "creating model..."
-    model = SummarizationModel(hps, vocab)
-    setup_training(model, batcher)
-  elif hps.mode == 'eval.sh':
-    model = SummarizationModel(hps, vocab)
-    run_eval(model, batcher, vocab)
-  elif hps.mode == 'decode':
-    decode_model_hps = hps  # This will be the hyperparameters for the decoder model
-    decode_model_hps = hps._replace(max_dec_steps=1) # The model is configured with max_dec_steps=1 because we only ever run one step of the decoder at a time (to do beam search). Note that the batcher is initialized with max_dec_steps equal to e.g. 100 because the batches need to contain the full summaries
-    model = SummarizationModel(decode_model_hps, vocab)
-    decoder = BeamSearchDecoder(model, batcher, vocab)
-    decoder.decode() # decode indefinitely (unless single_pass=True, in which case deocde the dataset exactly once)
-  else:
-    raise ValueError("The 'mode' flag must be one of train/eval.sh/decode")
+  decode_model_hps = hps._replace(max_dec_steps=1) # The model is configured with max_dec_steps=1 because we only ever run one step of the decoder at a time (to do beam search). Note that the batcher is initialized with max_dec_steps equal to e.g. 100 because the batches need to contain the full summaries
+  model = SummarizationModel(decode_model_hps, vocab)
+  decoder = BeamSearchDecoder(model, batcher, vocab)
+  decoder.decode() # decode indefinitely (unless single_pass=True, in which case deocde the dataset exactly once)
 
 if __name__ == '__main__':
   tf.app.run()

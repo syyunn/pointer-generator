@@ -57,8 +57,8 @@ class BeamSearchDecoder(object):
       # Make a descriptive decode directory name
       ckpt_name = "ckpt-" + ckpt_path.split('-')[-1] # this is something of the form "ckpt-123456"
       self._decode_dir = os.path.join(FLAGS.log_root, get_decode_dir_name(ckpt_name))
-      if os.path.exists(self._decode_dir):
-        raise Exception("single_pass decode directory %s should not already exist" % self._decode_dir)
+      # if os.path.exists(self._decode_dir):
+      #   raise Exception("single_pass decode directory %s should not already exist" % self._decode_dir)
 
     else: # Generic decode dir name
       self._decode_dir = os.path.join(FLAGS.log_root, "decode")
@@ -154,18 +154,20 @@ class BeamSearchDecoder(object):
     # pyrouge calls a perl script that puts the data into HTML files.
     # Therefore we need to make our output HTML safe.
     decoded_sents = [make_html_safe(w) for w in decoded_sents]
-    reference_sents = [make_html_safe(w) for w in reference_sents]
+    # reference_sents = [make_html_safe(w) for w in reference_sents]
 
     # Write to file
-    ref_file = os.path.join(self._rouge_ref_dir, "%06d_reference.txt" % ex_index)
-    decoded_file = os.path.join(self._rouge_dec_dir, "%06d_decoded.txt" % ex_index)
+    # ref_file = os.path.join(self._rouge_ref_dir, "%06d_reference.txt" % ex_index)
+    # decoded_file = os.path.join(self._rouge_dec_dir, "%06d_decoded.txt" % ex_index)
+    #
+    # with open(ref_file, "w") as f:
+    #   for idx,sent in enumerate(reference_sents):
+    #     f.write(sent) if idx==len(reference_sents)-1 else f.write(sent+"\n")
+    # with open(decoded_file, "w") as f:
+    #   for idx,sent in enumerate(decoded_sents):
+    #     f.write(sent) if idx==len(decoded_sents)-1 else f.write(sent+"\n")
 
-    with open(ref_file, "w") as f:
-      for idx,sent in enumerate(reference_sents):
-        f.write(sent) if idx==len(reference_sents)-1 else f.write(sent+"\n")
-    with open(decoded_file, "w") as f:
-      for idx,sent in enumerate(decoded_sents):
-        f.write(sent) if idx==len(decoded_sents)-1 else f.write(sent+"\n")
+    print("this is output decoded_sents", decoded_sents)
 
     tf.logging.info("Wrote example %i to file" % ex_index)
 
@@ -251,10 +253,11 @@ def rouge_log(results_dict, dir_to_write):
 def get_decode_dir_name(ckpt_name):
   """Make a descriptive name for the decode dir, including the name of the checkpoint we use to decode. This is called in single_pass mode."""
 
-  if "train" in FLAGS.data_path: dataset = "train"
-  elif "val" in FLAGS.data_path: dataset = "val"
-  elif "test" in FLAGS.data_path: dataset = "test"
-  else: raise ValueError("FLAGS.data_path %s should contain one of train, val or test" % (FLAGS.data_path))
+  # if "train" in FLAGS.data_path: dataset = "train"
+  # elif "val" in FLAGS.data_path: dataset = "val"
+  # elif "test" in FLAGS.data_path: dataset = "test"
+  # else: raise ValueError("FLAGS.data_path %s should contain one of train, val or test" % (FLAGS.data_path))
+  dataset = "test"
   dirname = "decode_%s_%imaxenc_%ibeam_%imindec_%imaxdec" % (dataset, FLAGS.max_enc_steps, FLAGS.beam_size, FLAGS.min_dec_steps, FLAGS.max_dec_steps)
   if ckpt_name is not None:
     dirname += "_%s" % ckpt_name

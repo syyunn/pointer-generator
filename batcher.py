@@ -225,7 +225,12 @@ class Batcher(object):
 
   BATCH_QUEUE_MAX = 100 # max number of batches the batch_queue can hold
 
-  def __init__(self, data_path, vocab, hps, single_pass):
+  def __init__(self,
+               hlgt,
+               data_path,
+               vocab,
+               hps,
+               single_pass):
     """Initialize the batcher. Start threads that process the data into batches.
 
     Args:
@@ -234,6 +239,7 @@ class Batcher(object):
       hps: hyperparameters
       single_pass: If True, run through the dataset exactly once (useful for when you want to run evaluation on the dev or test set). Otherwise generate random batches indefinitely (useful for training).
     """
+    self._hlgt = hlgt
     self._data_path = data_path
     self._vocab = vocab
     self._hps = hps
@@ -304,14 +310,11 @@ class Batcher(object):
         """ this is to simply feed our custom data once and finish the batch 
         filling"""
 
-        article = "If you were planning to ship a Huawei phone to America, " \
-                  "you might be in for a surprise. This week, writers at PC " \
-                  "Magazine tried to ship a Huawei P30 from a UK office to a US " \
-                  "one, and were surprised to find it sent back a few days later. " \
-                  "Since the sender had identified the phone down to the IMEI number, " \
-                  "it was clear from the beginning that box contained a Huawei phone, " \
-                  "but the package was actually shipped all the way from " \
-                  "London to Indianapolis — from the UK’s Parcelforce to its US partner FedEx — until a legal issue emerged and the shipment was returned to the UK. According to the attached notice, the problem was a \"US government issue with Huawei and China government.\""
+#        article = "If you were planning to ship a Huawei phone to America,
+        #        you might be in for a surprise. This week, writers at PC Magazine tried to ship a Huawei P30 from a UK office to a US one, and were surprised to find it sent back a few days later. Since the sender had identified the phone down to the IMEI number, it was clear from the beginning that box contained a Huawei phone, but the package was actually shipped all the way from London to Indianapolis — from the UK’s Parcelforce to its US partner FedEx — until a legal issue emerged and the shipment was returned to the UK. According to the attached notice, the problem was a \"US government issue with Huawei and China government.\""
+
+        article = self._hlgt
+        print(article)
 
         print("len(article)", len(article.split(' ')))
 
