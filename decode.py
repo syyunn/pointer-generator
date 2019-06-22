@@ -98,14 +98,20 @@ class BeamSearchDecoder(object):
       abstract_withunks = data.show_abs_oovs(original_abstract, self._vocab, (batch.art_oovs[0] if FLAGS.pointer_gen else None)) # string
       print("this is batch (fed into model beach search): ", batch)
       # Run beam search to get best Hypothesis
+      start = time.time()
+
       best_hyp = beam_search.run_beam_search(self._sess, self._model, self._vocab, batch)
       print("best_hyp", best_hyp)
+
 
       # Extract the output ids from the hypothesis and convert back to words
       output_ids = [int(t) for t in best_hyp.tokens[1:]]
       decoded_words = data.outputids2words(output_ids, self._vocab, (batch.art_oovs[0] if FLAGS.pointer_gen else None))
       print("decoded_words", decoded_words)
       print("len(decoded_words", len(decoded_words))
+
+      end = time.time()
+      print("time taken for baem search and decode", end - start)
 
       # Remove the [STOP] token from decoded_words, if necessary
       try:

@@ -135,7 +135,9 @@ def example_generator(data_path, single_pass):
         print("len_bytes", len_bytes)
         if not len_bytes: break # finished reading this file
         str_len = struct.unpack('q', len_bytes)[0]
+        print("str_len", str_len)
         example_str = struct.unpack('%ds' % str_len, reader.read(str_len))[0]
+        print("example_str", example_str)
         yield example_pb2.Example.FromString(example_str)
 
         # Added by zachary #

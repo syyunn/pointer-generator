@@ -338,6 +338,7 @@ class SummarizationModel(object):
   def run_eval_step(self, sess, batch):
     """Runs one evaluation iteration. Returns a dictionary containing summaries, loss, global_step and (optionally) coverage loss."""
     feed_dict = self._make_feed_dict(batch)
+    print("feed_dcit", feed_dict)
     to_return = {
         'summaries': self._summaries,
         'loss': self._loss,
@@ -359,11 +360,19 @@ class SummarizationModel(object):
       dec_in_state: A LSTMStateTuple of shape ([1,hidden_dim],[1,hidden_dim])
     """
     feed_dict = self._make_feed_dict(batch, just_enc=True) # feed the batch into the placeholders
+    print("feed_dict", feed_dict)
+    import time
+    start = time.time()
     (enc_states, dec_in_state, global_step) = sess.run([self._enc_states, self._dec_in_state, self.global_step], feed_dict) # run the encoder
+
 
     # dec_in_state is LSTMStateTuple shape ([batch_size,hidden_dim],[batch_size,hidden_dim])
     # Given that the batch is a single example repeated, dec_in_state is identical across the batch so we just take the top row.
     dec_in_state = tf.contrib.rnn.LSTMStateTuple(dec_in_state.c[0], dec_in_state.h[0])
+
+    end = time.time()
+    print("time_taken", end - start)
+
     return enc_states, dec_in_state
 
 
