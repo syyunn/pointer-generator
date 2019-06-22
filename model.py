@@ -62,9 +62,12 @@ class SummarizationModel(object):
     """
     feed_dict = {}
     feed_dict[self._enc_batch] = batch.enc_batch
+    print("batch.enc_batch: " , batch.enc_batch)
+    print("batch.enc_batch: " , batch.enc_batch.shape)
+
     feed_dict[self._enc_lens] = batch.enc_lens
     feed_dict[self._enc_padding_mask] = batch.enc_padding_mask
-    if FLAGS.pointer_gen:
+    if FLAGS.pointer_gen: # this is default
       feed_dict[self._enc_batch_extend_vocab] = batch.enc_batch_extend_vocab
       feed_dict[self._max_art_oovs] = batch.max_art_oovs
     if not just_enc:
@@ -122,7 +125,7 @@ class SummarizationModel(object):
 
 
   def _add_decoder(self, inputs):
-    """Add attention decoder to the graph. In train or eval mode, you call this once to get output on ALL steps. In decode (beam search) mode, you call this once for EACH decoder step.
+    """Add attention decoder to the graph. In train or eval.sh mode, you call this once to get output on ALL steps. In decode (beam search) mode, you call this once for EACH decoder step.
 
     Args:
       inputs: inputs to the decoder (word embeddings). A list of tensors shape (batch_size, emb_dim)
@@ -246,7 +249,7 @@ class SummarizationModel(object):
 
 
 
-      if hps.mode in ['train', 'eval']:
+      if hps.mode in ['train', 'eval.sh']:
         # Calculate the loss
         with tf.variable_scope('loss'):
           if FLAGS.pointer_gen:

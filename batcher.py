@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 # Modifications Copyright 2017 Abigail See
 #
@@ -13,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
 
 """This file contains code to process data into batches"""
 
@@ -38,6 +41,8 @@ class Example(object):
       hps: hyperparameters
     """
     self.hps = hps
+#    print("article", type(article))  # str
+#    print("abstract_sentences", type(abstract_sentences))  # list
 
     # Get ids of special tokens
     start_decoding = vocab.word2id(data.START_DECODING)
@@ -121,6 +126,7 @@ class Batch(object):
   """Class representing a minibatch of train/val/test examples for text summarization."""
 
   def __init__(self, example_list, hps, vocab):
+    # print("example_list", example_list)
     """Turns the example_list into a Batch object.
 
     Args:
@@ -287,12 +293,34 @@ class Batcher(object):
 
   def fill_example_queue(self):
     """Reads data from file and processes into Examples which are then placed into the example queue."""
-
     input_gen = self.text_generator(data.example_generator(self._data_path, self._single_pass))
 
     while True:
       try:
         (article, abstract) = input_gen.next() # read the next example from file. article and abstract are both strings.
+
+        ################### Added by Zachary ##################################
+
+        """ this is to simply feed our custom data once and finish the batch 
+        filling"""
+
+        article = "If you were planning to ship a Huawei phone to America, " \
+                  "you might be in for a surprise. This week, writers at PC " \
+                  "Magazine tried to ship a Huawei P30 from a UK office to a US " \
+                  "one, and were surprised to find it sent back a few days later. " \
+                  "Since the sender had identified the phone down to the IMEI number, " \
+                  "it was clear from the beginning that box contained a Huawei phone, " \
+                  "but the package was actually shipped all the way from " \
+                  "London to Indianapolis — from the UK’s Parcelforce to its US partner FedEx — until a legal issue emerged and the shipment was returned to the UK. According to the attached notice, the problem was a \"US government issue with Huawei and China government.\""
+
+        print("len(article)", len(article.split(' ')))
+
+        abstract = ["this is pseudo reference"]
+
+        self._finished_reading = True
+
+        #######################################################################
+
       except StopIteration: # if there are no more examples:
         tf.logging.info("The example generator for this example queue filling thread has exhausted data.")
         if self._single_pass:
@@ -303,6 +331,8 @@ class Batcher(object):
           raise Exception("single_pass mode is off but the example generator is out of data; error.")
 
       abstract_sentences = [sent.strip() for sent in data.abstract2sents(abstract)] # Use the <s> and </s> tags in abstract to get a list of sentences.
+
+
       example = Example(article, abstract_sentences, self._vocab, self._hps) # Process into an Example.
       self._example_queue.put(example) # place the Example in the example queue.
 
@@ -364,7 +394,9 @@ class Batcher(object):
       e = example_generator.next() # e is a tf.Example
       try:
         article_text = e.features.feature['article'].bytes_list.value[0] # the article text was saved under the key 'article' in the data files
+        # print("article_text: ", article_text)
         abstract_text = e.features.feature['abstract'].bytes_list.value[0] # the abstract text was saved under the key 'abstract' in the data files
+        # print("abstract_text: ", abstract_text)
       except ValueError:
         tf.logging.error('Failed to get article or abstract from example')
         continue

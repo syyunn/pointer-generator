@@ -1,0 +1,1 @@
+python run_summarization.py --mode=decode --data_path=/Users/zachary/Downloads/finished_files/chunked/test_000.bin --vocab_path=/Users/zachary/Downloads/finished_files/vocab --log_root=/Users/zachary/Downloads --exp_name=pretrained_model_tf1.2.1 --max_enc_steps=400 --max_dec_steps=120 --coverage=1 --single_pass=1

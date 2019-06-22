@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 
-"""This file contains code to read the train/eval/test data from file and process it, and read the vocab data from file and process it"""
+"""This file contains code to read the train/eval.sh/test data from file and process it, and read the vocab data from file and process it"""
 
 import glob
 import random
@@ -132,10 +132,17 @@ def example_generator(data_path, single_pass):
       reader = open(f, 'rb')
       while True:
         len_bytes = reader.read(8)
+        print("len_bytes", len_bytes)
         if not len_bytes: break # finished reading this file
         str_len = struct.unpack('q', len_bytes)[0]
         example_str = struct.unpack('%ds' % str_len, reader.read(str_len))[0]
         yield example_pb2.Example.FromString(example_str)
+
+        # Added by zachary #
+        """To break right away to make it irrelevant to file input"""
+        break
+        ###################
+
     if single_pass:
       print "example_generator completed reading all datafiles. No more data."
       break

@@ -83,9 +83,11 @@ class BeamSearchDecoder(object):
       if batch is None: # finished decoding dataset in single_pass mode
         assert FLAGS.single_pass, "Dataset exhausted, but we are not in single_pass mode"
         tf.logging.info("Decoder has finished reading dataset for single_pass.")
-        tf.logging.info("Output has been saved in %s and %s. Now starting ROUGE eval...", self._rouge_ref_dir, self._rouge_dec_dir)
-        results_dict = rouge_eval(self._rouge_ref_dir, self._rouge_dec_dir)
-        rouge_log(results_dict, self._decode_dir)
+        tf.logging.info("Output has been saved in %s and %s. Now starting ROUGE eval.sh...", self._rouge_ref_dir, self._rouge_dec_dir)
+# Commented out by Zachary #
+#        results_dict = rouge_eval(self._rouge_ref_dir, self._rouge_dec_dir)
+#        rouge_log(results_dict, self._decode_dir)
+############################
         return
 
       original_article = batch.original_articles[0]  # string
@@ -94,24 +96,30 @@ class BeamSearchDecoder(object):
 
       article_withunks = data.show_art_oovs(original_article, self._vocab) # string
       abstract_withunks = data.show_abs_oovs(original_abstract, self._vocab, (batch.art_oovs[0] if FLAGS.pointer_gen else None)) # string
-
+      print("this is batch (fed into model beach search): ", batch)
       # Run beam search to get best Hypothesis
       best_hyp = beam_search.run_beam_search(self._sess, self._model, self._vocab, batch)
+      print("best_hyp", best_hyp)
 
       # Extract the output ids from the hypothesis and convert back to words
       output_ids = [int(t) for t in best_hyp.tokens[1:]]
       decoded_words = data.outputids2words(output_ids, self._vocab, (batch.art_oovs[0] if FLAGS.pointer_gen else None))
+      print("decoded_words", decoded_words)
+      print("len(decoded_words", len(decoded_words))
 
       # Remove the [STOP] token from decoded_words, if necessary
       try:
         fst_stop_idx = decoded_words.index(data.STOP_DECODING) # index of the (first) [STOP] symbol
         decoded_words = decoded_words[:fst_stop_idx]
+        print("stoptoken decoded words", decoded_words)
+        print("len(decoded_words", len(decoded_words))
+
       except ValueError:
         decoded_words = decoded_words
       decoded_output = ' '.join(decoded_words) # single string
 
       if FLAGS.single_pass:
-        self.write_for_rouge(original_abstract_sents, decoded_words, counter) # write ref summary and decoded summary to file, to eval with pyrouge later
+        self.write_for_rouge(original_abstract_sents, decoded_words, counter) # write ref summary and decoded summary to file, to eval.sh with pyrouge later
         counter += 1 # this is how many examples we've decoded
       else:
         print_results(article_withunks, abstract_withunks, decoded_output) # log output to screen
@@ -125,7 +133,7 @@ class BeamSearchDecoder(object):
           t0 = time.time()
 
   def write_for_rouge(self, reference_sents, decoded_words, ex_index):
-    """Write output to file in correct format for eval with pyrouge. This is called in single_pass mode.
+    """Write output to file in correct format for eval.sh with pyrouge. This is called in single_pass mode.
 
     Args:
       reference_sents: list of strings

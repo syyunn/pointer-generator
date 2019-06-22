@@ -36,8 +36,8 @@ tf.app.flags.DEFINE_string('data_path', '', 'Path expression to tf.Example dataf
 tf.app.flags.DEFINE_string('vocab_path', '', 'Path expression to text vocabulary file.')
 
 # Important settings
-tf.app.flags.DEFINE_string('mode', 'train', 'must be one of train/eval/decode')
-tf.app.flags.DEFINE_boolean('single_pass', False, 'For decode mode only. If True, run eval on the full dataset using a fixed checkpoint, i.e. take the current checkpoint, and use it to produce one summary for each example in the dataset, write the summaries to file and then get ROUGE scores for the whole dataset. If False (default), run concurrent decoding, i.e. repeatedly load latest checkpoint, use it to produce summaries for randomly-chosen examples and log the results to screen, indefinitely.')
+tf.app.flags.DEFINE_string('mode', 'train', 'must be one of train/eval.sh/decode')
+tf.app.flags.DEFINE_boolean('single_pass', False, 'For decode mode only. If True, run eval.sh on the full dataset using a fixed checkpoint, i.e. take the current checkpoint, and use it to produce one summary for each example in the dataset, write the summaries to file and then get ROUGE scores for the whole dataset. If False (default), run concurrent decoding, i.e. repeatedly load latest checkpoint, use it to produce summaries for randomly-chosen examples and log the results to screen, indefinitely.')
 
 # Where to save output
 tf.app.flags.DEFINE_string('log_root', '', 'Root directory for all logging.')
@@ -67,7 +67,7 @@ tf.app.flags.DEFINE_float('cov_loss_wt', 1.0, 'Weight of coverage loss (lambda i
 
 # Utility flags, for restoring and changing checkpoints
 tf.app.flags.DEFINE_boolean('convert_to_coverage_model', False, 'Convert a non-coverage model to a coverage model. Turn this on and run in train mode. Your current training model will be copied to a new version (same name with _cov_init appended) that will be ready to run with coverage flag turned on, for the coverage training stage.')
-tf.app.flags.DEFINE_boolean('restore_best_model', False, 'Restore the best model in the eval/ dir and save it in the train/ dir, ready to be used for further training. Useful for early stopping, or if your training checkpoint has become corrupted with e.g. NaN values.')
+tf.app.flags.DEFINE_boolean('restore_best_model', False, 'Restore the best model in the eval.sh/ dir and save it in the train/ dir, ready to be used for further training. Useful for early stopping, or if your training checkpoint has become corrupted with e.g. NaN values.')
 
 # Debugging. See https://www.tensorflow.org/programmers_guide/debugger
 tf.app.flags.DEFINE_boolean('debug', False, "Run in tensorflow's debug mode (watches for NaN/inf values)")
@@ -79,7 +79,7 @@ def calc_running_avg_loss(loss, running_avg_loss, summary_writer, step, decay=0.
   This is used to implement early stopping w.r.t. a more smooth loss curve than the raw loss curve.
 
   Args:
-    loss: loss on the most recent eval step
+    loss: loss on the most recent eval.sh step
     running_avg_loss: running_avg_loss so far
     summary_writer: FileWriter object to write for tensorboard
     step: training iteration step
@@ -102,7 +102,7 @@ def calc_running_avg_loss(loss, running_avg_loss, summary_writer, step, decay=0.
 
 
 def restore_best_model():
-  """Load bestmodel file from eval directory, add variables for adagrad, and save to train directory"""
+  """Load bestmodel file from eval.sh directory, add variables for adagrad, and save to train directory"""
   tf.logging.info("Restoring bestmodel for training...")
 
   # Initialize all vars in the model
@@ -110,10 +110,10 @@ def restore_best_model():
   print "Initializing all variables..."
   sess.run(tf.initialize_all_variables())
 
-  # Restore the best model from eval dir
+  # Restore the best model from eval.sh dir
   saver = tf.train.Saver([v for v in tf.all_variables() if "Adagrad" not in v.name])
-  print "Restoring all non-adagrad variables from best model in eval dir..."
-  curr_ckpt = util.load_ckpt(saver, sess, "eval")
+  print "Restoring all non-adagrad variables from best model in eval.sh dir..."
+  curr_ckpt = util.load_ckpt(saver, sess, "eval.sh")
   print "Restored %s." % curr_ckpt
 
   # Save this model to train dir and quit
@@ -194,6 +194,7 @@ def run_training(model, batcher, sess_context_manager, sv, summary_writer):
       tf.logging.info('running training step...')
       t0=time.time()
       results = model.run_train_step(sess, batch)
+      print("results", results)
       t1=time.time()
       tf.logging.info('seconds for training step: %.3f', t1-t0)
 
@@ -217,21 +218,21 @@ def run_training(model, batcher, sess_context_manager, sv, summary_writer):
 
 
 def run_eval(model, batcher, vocab):
-  """Repeatedly runs eval iterations, logging to screen and writing summaries. Saves the model with the best loss seen so far."""
+  """Repeatedly runs eval.sh iterations, logging to screen and writing summaries. Saves the model with the best loss seen so far."""
   model.build_graph() # build the graph
   saver = tf.train.Saver(max_to_keep=3) # we will keep 3 best checkpoints at a time
   sess = tf.Session(config=util.get_config())
-  eval_dir = os.path.join(FLAGS.log_root, "eval") # make a subdir of the root dir for eval data
+  eval_dir = os.path.join(FLAGS.log_root, "eval.sh") # make a subdir of the root dir for eval.sh data
   bestmodel_save_path = os.path.join(eval_dir, 'bestmodel') # this is where checkpoints of best models are saved
   summary_writer = tf.summary.FileWriter(eval_dir)
-  running_avg_loss = 0 # the eval job keeps a smoother, running average loss to tell it when to implement early stopping
+  running_avg_loss = 0 # the eval.sh job keeps a smoother, running average loss to tell it when to implement early stopping
   best_loss = None  # will hold the best loss achieved so far
 
   while True:
     _ = util.load_ckpt(saver, sess) # load a new checkpoint
     batch = batcher.next_batch() # get the next batch
 
-    # run eval on the batch
+    # run eval.sh on the batch
     t0=time.time()
     results = model.run_eval_step(sess, batch)
     t1=time.time()
@@ -253,7 +254,7 @@ def run_eval(model, batcher, vocab):
     running_avg_loss = calc_running_avg_loss(np.asscalar(loss), running_avg_loss, summary_writer, train_step)
 
     # If running_avg_loss is best so far, save this checkpoint (early stopping).
-    # These checkpoints will appear as bestmodel-<iteration_number> in the eval dir
+    # These checkpoints will appear as bestmodel-<iteration_number> in the eval.sh dir
     if best_loss is None or running_avg_loss < best_loss:
       tf.logging.info('Found new best model with %.3f running_avg_loss. Saving to %s', running_avg_loss, bestmodel_save_path)
       saver.save(sess, bestmodel_save_path, global_step=train_step, latest_filename='checkpoint_best')
@@ -308,7 +309,7 @@ def main(unused_argv):
     print "creating model..."
     model = SummarizationModel(hps, vocab)
     setup_training(model, batcher)
-  elif hps.mode == 'eval':
+  elif hps.mode == 'eval.sh':
     model = SummarizationModel(hps, vocab)
     run_eval(model, batcher, vocab)
   elif hps.mode == 'decode':
@@ -318,7 +319,7 @@ def main(unused_argv):
     decoder = BeamSearchDecoder(model, batcher, vocab)
     decoder.decode() # decode indefinitely (unless single_pass=True, in which case deocde the dataset exactly once)
   else:
-    raise ValueError("The 'mode' flag must be one of train/eval/decode")
+    raise ValueError("The 'mode' flag must be one of train/eval.sh/decode")
 
 if __name__ == '__main__':
   tf.app.run()
