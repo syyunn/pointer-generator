@@ -125,18 +125,23 @@ class BeamSearchDecoder(object):
       decoded_output = ' '.join(decoded_words) # single string
 
       if FLAGS.single_pass:
-        self.write_for_rouge(original_abstract_sents, decoded_words, counter) # write ref summary and decoded summary to file, to eval.sh with pyrouge later
+        decided_sents = self.write_for_rouge(original_abstract_sents, decoded_words, counter) # write ref summary and decoded summary to file, to eval.sh with pyrouge later
         counter += 1 # this is how many examples we've decoded
+
+        return ' '.join(decided_sents)
+
       else:
         print_results(article_withunks, abstract_withunks, decoded_output) # log output to screen
         self.write_for_attnvis(article_withunks, abstract_withunks, decoded_words, best_hyp.attn_dists, best_hyp.p_gens) # write info to .json file for visualization tool
 
-        # Check if SECS_UNTIL_NEW_CKPT has elapsed; if so return so we can load a new checkpoint
-        t1 = time.time()
-        if t1-t0 > SECS_UNTIL_NEW_CKPT:
-          tf.logging.info('We\'ve been decoding with same checkpoint for %i seconds. Time to load new checkpoint', t1-t0)
-          _ = util.load_ckpt(self._saver, self._sess)
-          t0 = time.time()
+        ### Commented-Out by Zachary ###
+        # # Check if SECS_UNTIL_NEW_CKPT has elapsed; if so return so we can load a new checkpoint
+        # t1 = time.time()
+        # if t1-t0 > SECS_UNTIL_NEW_CKPT:
+        #   tf.logging.info('We\'ve been decoding with same checkpoint for %i seconds. Time to load new checkpoint', t1-t0)
+        #   _ = util.load_ckpt(self._saver, self._sess)
+        #   t0 = time.time()
+        ################################
 
   def write_for_rouge(self, reference_sents, decoded_words, ex_index):
     """Write output to file in correct format for eval.sh with pyrouge. This is called in single_pass mode.
@@ -176,6 +181,8 @@ class BeamSearchDecoder(object):
     print("this is output decoded_sents", decoded_sents)
 
     tf.logging.info("Wrote example %i to file" % ex_index)
+
+    return decoded_sents
 
 
   def write_for_attnvis(self, article, abstract, decoded_words, attn_dists, p_gens):
